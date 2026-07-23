@@ -19,109 +19,103 @@
 
 ---
 
-## Descrição
+## 🇧🇷 Resumo do Projeto (PT-BR)
 
-Pipeline de Engenharia de Dados que investiga se textos gerados por Inteligência Artificial seguem a mesma **Lei de Zipf** observada em textos humanos.
+Este projeto consiste em um pipeline de dados desenvolvido para verificar empiricamente se textos sintéticos gerados por LLMs (Corpus Artificial — CA) reproduzem a Lei de Zipf ($f(r) \approx \frac{C}{r^{\alpha}}$) na mesma proporção e comportamento observados na literatura humana clássica (Corpus Natural — CN)."
 
-**Problema:** A Lei de Zipf (f ∝ r⁻ᵅ, com α ≈ 1) é uma propriedade empírica da linguagem natural. LLMs reproduzem essa distribuição ou apresentam desvios?
+---
 
-**Metodologia:** O pipeline baixa livros do Project Gutenberg, gera textos equivalentes via Groq API (LLaMA 3.1 8B), calcula o coeficiente α por regressão linear log-log e compara estatisticamente as duas populações com teste KS.
+## Mathematical Background & Overview
 
-**Hipótese nula (H₀):** A distribuição dos coeficientes α de textos gerados por IA é igual à de textos humanos.
+**Zipf's Law** is an empirical power law in quantitative linguistics stating that in a given corpus of natural language, the frequency $f(r)$ of any word is inversely proportional to its rank $r$ in the frequency table:
+
+$$f(r) \approx \frac{C}{r^{\alpha}}$$
+
+When transformed into log-log space, this power-law relationship yields a linear equation:
+
+$$\log f(r) = \log C - \alpha \log r$$
+
+Where:
+
+- $r$ represents the word rank ($1$ for the most frequent word, $2$ for the second most frequent, etc.).
+- $f(r)$ represents the observed frequency of the word at rank $r$.
+- $\alpha$ is the Zipf decay exponent ($\alpha \approx 1.0$ for standard natural languages).
+- $C$ is a normalization constant.
+
+This project implements an end-to-end Python pipeline to evaluate whether modern Large Language Models (LLMs) adhere to this fundamental linguistic property or exhibit statistical divergence from human-written text.
+
+---
+
+## Project Structure
+
+```text
+etl-zipf-law-analysis/
+├── data/
+│   ├── external/       # Metadata & Gutenberg ID manifests (e.g., gutenberg_ids.csv)
+│   ├── generated/      # Synthetic text outputs generated via Groq API (CA)
+│   ├── processed/      # Cleaned and tokenized datasets
+│   └── raw/            # Ingested raw text files from Project Gutenberg (CN)
+├── docs/               # Technical documentation & project images
+├── logs/               # Pipeline execution logs
+├── outputs/
+│   ├── figures/        # Generated plots (histograms, log-log fits, density curves)
+│   ├── reports/        # Analytical summary reports
+│   ├── tables/         # Summary statistical tables
+│   └── zipf_results.csv# Final calculated alpha values, R² metrics, and Gutenberg IDs
+├── src/
+│   ├── analysis/       # OLS regression in log-log space & Kolmogorov-Smirnov test
+│   ├── data/           # Gutenberg downloading, text cleaning, & tokenization
+│   ├── models/         # Groq API integration (LLaMA-3) & rate-limit handling
+│   ├── pipelines/      # Pipeline orchestration workflow
+│   ├── utils/          # File management, logging, & helper functions
+│   └── visualization/  # Matplotlib & Seaborn chart generation
+├── tests/              # Unit test suite (pytest)
+├── main.py             # Main execution CLI script
+├── pyproject.toml      # Project configuration & dependencies
+├── requirements.txt    # Production dependencies
+└── requirements-dev.txt# Development & testing dependencies
+```
+
+---
+
+## Key Pipeline Stages
+
+1. **Automated Data Collection (CN)**: Ingests classical literature directly from Project Gutenberg using configurable manifests.
+2. **LLM Text Generation & Resilience (CA)**: Interfaces with the Groq API to generate synthetic control texts matching the style/theme of human samples, incorporating exponential backoff for rate limits (HTTP 429).
+3. **Power-Law Regression Modeling**: Computes rank-frequency metrics and performs linear regression in log-log space to fit Zipf exponents ($\alpha$) and coefficients of determination ($R^2$).
+4. **Hypothesis Testing & Statistical Inference**: Runs a two-sample Kolmogorov-Smirnov (KS) test (`scipy.stats.ks_2samp`) to determine if human and synthetic $\alpha$ distributions originate from the same underlying distribution.
+5. **Data Visualization**: Saves analytical plots including log-log rank-frequency curves, boxplots, and comparative histograms.
 
 ---
 
 ## Features
 
-- Download automático de livros do Project Gutenberg
-- Pré-processamento e limpeza de texto
-- Geração de textos via Groq API com cache em disco
-- Cálculo da Lei de Zipf (α, R²) por regressão linear log-log
-- Teste de Kolmogorov-Smirnov entre distribuições
-- Geração de gráficos comparativos (histograma, boxplot, densidade)
-- Pipeline idempotente com checkpoint e retomada
-- Cache de respostas da API em `data/generated/`
-- Logging estruturado com timestamp
-- Conjunto de testes com pytest
+- Automatic downloading of books from Project Gutenberg
+- Text preprocessing and cleaning
+- Text generation via Groq API with disk caching
+- Zipf's Law calculation ($\alpha$, $R^2$) using log-log linear regression
+- Kolmogorov-Smirnov test between distributions
+- Generation of comparative plots (histogram, boxplot, density)
+- Idempotent pipeline with checkpointing and resume support
+- API response caching in `data/generated/`
+- Structured logging with timestamps
+- Test suite with pytest
 
 ---
 
-## Tecnologias
+## Tech Stack
 
-| Categoria             | Tecnologia              |
-| --------------------- | ----------------------- |
-| Linguagem             | Python 3.10+            |
-| Geração de Texto      | Groq API (LLaMA 3.1 8B) |
-| Computação Científica | NumPy                   |
-| Análise de Dados      | pandas, SciPy           |
-| Visualização          | Matplotlib              |
-| Progresso             | tqdm                    |
-| Configuração          | python-dotenv           |
-| Testes                | pytest                  |
-| Qualidade             | ruff                    |
-
----
-
-## Arquitetura
-
-O projeto segue **Clean Architecture** e **Separation of Concerns**, organizado em camadas:
-
-```
-.
-├── data/
-│   ├── raw/              # Textos brutos do Gutenberg
-│   ├── processed/        # Textos limpos e normalizados
-│   ├── generated/        # Textos gerados por IA (cache)
-│   └── external/         # Dados externos de referência
-│
-├── outputs/
-│   ├── figures/          # Gráficos gerados (PNG, 300dpi)
-│   ├── tables/           # Tabelas de resultados (CSV)
-│   └── reports/          # Relatórios de prompt (markdown)
-│
-├── docs/
-│   └── images/           # Imagens do README
-│
-├── logs/                 # Logs do pipeline
-├── notebooks/            # Jupyter notebooks para exploração
-│
-├── src/
-│   ├── data/
-│   │   ├── loader.py           # Download de livros
-│   │   └── preprocessing.py    # Limpeza e normalização
-│   │
-│   ├── models/
-│   │   └── groq_generator.py   # Interface com API Groq
-│   │
-│   ├── pipelines/
-│   │   └── pipeline.py         # Orquestração do experimento
-│   │
-│   ├── analysis/
-│   │   ├── zipf.py             # Cálculos da Lei de Zipf
-│   │   └── statistics.py       # Indicadores estatísticos
-│   │
-│   ├── visualization/
-│   │   └── plots.py            # Geração de gráficos
-│   │
-│   ├── utils/
-│   │   ├── logger.py           # Configuração de logging
-│   │   ├── file_manager.py     # Operações de arquivo
-│   │   └── helpers.py          # Funções auxiliares
-│   │
-│   └── config.py               # Configurações centralizadas
-│
-├── tests/
-│   ├── test_preprocessing.py
-│   ├── test_zipf.py
-│   ├── test_statistics.py
-│   └── test_file_manager.py
-│
-├── main.py                     # Ponto de entrada
-├── requirements.txt            # Dependências
-├── requirements-dev.txt        # Dependências de desenvolvimento
-├── pyproject.toml              # Configuração do projeto
-└── .env.example                # Template de variáveis de ambiente
-```
+| Category             | Technology              |
+| -------------------- | ----------------------- |
+| Language             | Python 3.10+            |
+| Text Generation      | Groq API (LLaMA 3.1 8B) |
+| Scientific Computing | NumPy                   |
+| Data Analysis        | pandas, SciPy           |
+| Visualization        | Matplotlib              |
+| Progress Bar         | tqdm                    |
+| Configuration        | python-dotenv           |
+| Testing              | pytest                  |
+| Code Quality         | ruff                    |
 
 ---
 
@@ -146,115 +140,113 @@ flowchart TD
     F --> G
 ```
 
-### Checkpoint & Cache
+### Checkpointing & Caching
 
-- **Checkpoint:** O pipeline lê `outputs/zipf_results.csv` ao iniciar e retoma do último livro processado.
-- **Cache IA:** Textos gerados são salvos em `data/generated/{book_id}.txt`. Se o arquivo existir, a API não é chamada.
+- **Checkpoint:** The pipeline reads `outputs/zipf_results.csv` on startup and resumes execution from the last processed book.
+- **AI Cache:** Generated texts are saved to `data/generated/{book_id}.txt`. If the file already exists, the API is not called.
 
-### Métricas
+### Metrics
 
-| Métrica     | Descrição                                           |
-| ----------- | --------------------------------------------------- |
-| **α**       | Coeficiente de Zipf (inclinação no gráfico log-log) |
-| **R²**      | Qualidade do ajuste linear                          |
-| **KS test** | Kolmogorov-Smirnov entre distribuições humana e IA  |
-
----
-
-## Instalação
-
-```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/zipf-human-vs-ai.git
-cd zipf-human-vs-ai
-
-# Crie o ambiente virtual
-python -m venv .venv
-
-# Ative o ambiente
-## Windows
-.venv\Scripts\activate
-## Linux/macOS
-source .venv/bin/activate
-
-# Instale as dependências
-pip install -r requirements.txt
-
-# (Opcional) Modo editável para desenvolvimento
-pip install -e .
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-```
-
-Edite o arquivo `.env`:
-
-```env
-GROQ_API_KEY=sua_chave_aqui
-GROQ_MODEL=llama-3.1-8b-instant
-TARGET_WORDS=5000
-MAX_BOOKS=100
-```
+| Metric       | Description                                                  |
+| ------------ | ------------------------------------------------------------ |
+| **$\alpha$** | Zipf coefficient (slope in the log-log plot)                 |
+| **$R^2$**    | Goodness of linear fit                                       |
+| **KS test**  | Kolmogorov-Smirnov test comparing human and AI distributions |
 
 ---
 
-## Como Executar
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- Virtual environment (`venv` or `conda`) or Google Colab
+
+### Installation
+
+1. **Clone the repository**:
+
+   ```bash
+   git clone [https://github.com/your-username/etl-zipf-law-analysis.git](https://github.com/your-username/etl-zipf-law-analysis.git)
+   cd etl-zipf-law-analysis
+   ```
+
+2. **Create and activate virtual environment**:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+
+   ```bash
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt  # Optional: for testing and linting
+   ```
+
+4. **Environment Configuration**:
+   Copy `.env.example` to `.env` and set your Groq API key:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your key inside `.env`:
+   ```env
+   GROQ_API_KEY=your_groq_api_key_here
+   ```
+
+---
+
+## Running the Pipeline
+
+To execute the complete pipeline (downloading, generating synthetic texts, fitting regressions, running hypothesis tests, and producing charts):
 
 ```bash
 python main.py
 ```
 
-Para uma execução rápida de validação (2 livros, 500 palavras):
+### Execution Steps
 
-```bash
-MAX_BOOKS=2 TARGET_WORDS=500 python main.py
-```
-
-### Artefatos Gerados
-
-| Arquivo                                     | Descrição                        |
-| ------------------------------------------- | -------------------------------- |
-| `outputs/zipf_results.csv`                  | Resultados por livro (α, R²)     |
-| `outputs/tables/descriptive_statistics.csv` | Média, mediana, desvio, min, max |
-| `outputs/tables/ks_test.csv`                | Teste Kolmogorov-Smirnov         |
-| `outputs/figures/alpha_histogram.png`       | Histograma dos coeficientes α    |
-| `outputs/figures/alpha_boxplot.png`         | Boxplot humano vs. IA            |
-| `outputs/figures/alpha_density.png`         | Densidade dos coeficientes       |
-| `outputs/figures/r2_histogram.png`          | Distribuição do R²               |
-| `outputs/figures/zipf_loglog_fit.png`       | Ajuste log-log de exemplo        |
-| `logs/pipeline.log`                         | Log detalhado da execução        |
+1. Reads Gutenberg book IDs from `data/external/gutenberg_ids.csv`.
+2. Downloads and cleans raw texts in `data/raw/`.
+3. Calls Groq API to generate synthetic texts in `data/generated/`.
+4. Preprocesses and normalizes token samples in `data/processed/`.
+5. Fits linear regressions in log-log space and runs Kolmogorov-Smirnov tests.
+6. Exports statistics to `outputs/zipf_results.csv` and outputs visual charts in `outputs/figures/`.
 
 ---
 
-## Testes
+## Running Tests
+
+Unit tests cover file management, preprocessing, statistics, and Zipf regression algorithms. Run tests using `pytest`:
 
 ```bash
-pip install -r requirements-dev.txt
 pytest
 ```
 
----
+To run tests with coverage reporting:
 
-## Resultados
-
-### Histograma dos coeficientes α
-
-![alpha_histogram](outputs/figures/alpha_histogram.png)
-
-### Boxplot humano vs. IA
-
-![alpha_boxplot](outputs/figures/alpha_boxplot.png)
-
-### Densidade dos coeficientes α
-
-![alpha_density](outputs/figures/alpha_density.png)
-
-### Distribuição do R²
-
-![r2_histogram](outputs/figures/r2_histogram.png)
-
-### Ajuste da Lei de Zipf (log-log)
-
-![zipf_loglog_fit](outputs/figures/zipf_loglog_fit.png)
+```bash
+pytest --cov=src tests/
+```
 
 ---
+
+## Analytical Outputs
+
+Upon completion, outputs are exported to the `outputs/` directory:
+
+| Output File           | Description                                                                                                |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------- |
+| `zipf_results.csv`    | Dataset containing Gutenberg IDs, calculated $\alpha$ parameters, $R^2$ values, and corpus labels (CN/CA). |
+| `zipf_loglog_fit.png` | Rank vs. Frequency plot in log-log space comparing CN and CA fitted regression lines.                      |
+| `alpha_histogram.png` | Comparative histogram of estimated Zipf decay exponents $\alpha$ (Human vs. AI).                           |
+| `alpha_density.png`   | Kernel Density Estimation (KDE) curve for Zipf exponents.                                                  |
+| `alpha_boxplot.png`   | Boxplot displaying distribution medians, IQRs, and outliers of $\alpha$.                                   |
+| `r2_histogram.png`    | Goodness-of-fit ($R^2$) distribution across analyzed works.                                                |
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
