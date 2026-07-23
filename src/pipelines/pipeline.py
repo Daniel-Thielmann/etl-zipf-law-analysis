@@ -225,8 +225,9 @@ def run_pipeline(settings: Settings) -> pd.DataFrame:
     ks_result.to_csv(ks_path, index=False)
     LOGGER.info("Teste KS salvo em %s", ks_path)
 
-    create_all_plots(results, sample, paths.figures_dir)
-    LOGGER.info("Gráficos finais salvos em %s", paths.figures_dir)
+    if sample:
+        create_all_plots(results, sample, paths.figures_dir)
+        LOGGER.info("Gráficos finais salvos em %s", paths.figures_dir)
 
     LOGGER.info(
         "Pipeline concluído — %d livros processados.", len(results)
