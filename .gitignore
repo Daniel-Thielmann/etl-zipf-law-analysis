@@ -17,9 +17,6 @@ data/processed/*
 data/generated/*
 !data/generated/.gitkeep
 
-outputs/figures/*
-!outputs/figures/.gitkeep
-
 outputs/tables/*
 !outputs/tables/.gitkeep
 
