@@ -19,7 +19,7 @@
 
 ---
 
-## 🇧🇷 Resumo do Projeto (PT-BR)
+## Resumo do Projeto (PT-BR)
 
 Este projeto consiste em um pipeline de dados desenvolvido para verificar empiricamente se textos sintéticos gerados por LLMs (Corpus Artificial — CA) reproduzem a Lei de Zipf ($f(r) \approx \frac{C}{r^{\alpha}}$) na mesma proporção e comportamento observados na literatura humana clássica (Corpus Natural — CN)."
 
