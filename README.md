@@ -258,7 +258,3 @@ pytest
 ![zipf_loglog_fit](outputs/figures/zipf_loglog_fit.png)
 
 ---
-
-## Licença
-
-MIT © 2026 Daniel Alves Thielmann & Felipe Gotelip Delgado
